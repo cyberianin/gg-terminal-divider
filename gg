@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+
+gg() {
+    local LC_ALL=C.UTF-8
+    local style=${GG_STYLE:-double} pattern='' custom=0
+    local color=${GG_COLOR:-magenta} text_color=${GG_TEXT_COLOR:-cyan}
+    local layout=${GG_LAYOUT:-box} align=${GG_ALIGN:-center} width=${GG_WIDTH:-}
+    local title='' explicit=0 no_color=0 force_color=0 option value glyph
+    local -a words=()
+
+    while (($#)); do
+        case $1 in
+            -h|--help)
+                cat <<'HELP'
+Usage: gg [options] [text]
+
+  -t, --text TEXT         Title (alternative to positional text)
+  -s, --style STYLE       double | single | heavy | dashed | dotted | ascii
+  -c, --char PATTERN      Custom pattern (1..16 narrow characters)
+      --color COLOR       Separator color (default: magenta)
+      --text-color COLOR  Title color (default: cyan)
+  -w, --width N           Width (8..500; automatic width capped at 120)
+  -a, --align ALIGN       left | center | right
+  -l, --layout LAYOUT     box | inline
+      --no-color          Disable ANSI colors
+      --force-color       Enable ANSI colors when redirected
+  -h, --help              Show this help
+
+Colors: black, red, green, yellow, blue, magenta, cyan, white,
+        gray, bright-red, bright-green, bright-yellow, bright-blue,
+        bright-magenta, bright-cyan, bright-white, #RRGGBB, 0..255.
+        Use none or default to disable an individual color.
+
+Defaults: GG_STYLE, GG_COLOR, GG_TEXT_COLOR, GG_WIDTH,
+          GG_ALIGN, GG_LAYOUT.
+HELP
+                return 0 ;;
+            --no-color) no_color=1; shift; continue ;;
+            --force-color) force_color=1; shift; continue ;;
+            --) shift; words+=("$@"); break ;;
+            --*=*) option=${1%%=*}; value=${1#*=}; shift ;;
+            -t|--text|-s|--style|-c|--char|--color|--text-color|-w|--width|-a|--align|-l|--layout)
+                option=$1
+                if (($# < 2)); then
+                    printf 'gg: %s requires a value\n' "$option" >&2
+                    return 2
+                fi
+                value=$2; shift 2 ;;
+            -*) printf 'gg: unknown option: %s\n' "$1" >&2; return 2 ;;
+            *) words+=("$1"); shift; continue ;;
+        esac
+        case $option in
+            -t|--text) title=$value; explicit=1 ;;
+            -s|--style) style=$value ;;
+            -c|--char) pattern=$value; custom=1 ;;
+            --color) color=$value ;;
+            --text-color) text_color=$value ;;
+            -w|--width) width=$value ;;
+            -a|--align) align=$value ;;
+            -l|--layout) layout=$value ;;
+            *) printf 'gg: unknown option: %s\n' "$option" >&2; return 2 ;;
+        esac
+    done
+
+    if ((${#words[@]})); then
+        if ((explicit)); then
+            printf 'gg: use either --text or positional text, not both\n' >&2
+            return 2
+        fi
+        title=${words[*]}
+    fi
+
+    case $style in
+        double) glyph='═' ;; single) glyph='─' ;; heavy) glyph='━' ;;
+        dashed) glyph='╌' ;; dotted) glyph='·' ;; ascii) glyph='=' ;;
+        *) printf 'gg: invalid style: %s\n' "$style" >&2; return 2 ;;
+    esac
+    ((custom)) && glyph=$pattern
+    if ((${#glyph} < 1 || ${#glyph} > 16)) ||
+       [[ $glyph =~ [[:cntrl:]] || $glyph =~ ^[[:space:]]+$ ]]; then
+        printf 'gg: --char must have 1..16 printable, narrow characters\n' >&2
+        return 2
+    fi
+    case $align in
+        left|center|right) ;; *) printf 'gg: invalid align: %s\n' "$align" >&2; return 2 ;;
+    esac
+    case $layout in
+        box|inline) ;; *) printf 'gg: invalid layout: %s\n' "$layout" >&2; return 2 ;;
+    esac
+    if [[ $title =~ [[:cntrl:]] ]]; then
+        printf 'gg: title must be a single line without control characters\n' >&2
+        return 2
+    fi
+
+    if [[ -z $width ]]; then
+        width=${COLUMNS:-}
+        if [[ ! $width =~ ^[0-9]+$ && -t 1 ]] && command -v tput >/dev/null 2>&1; then
+            width=$(tput cols 2>/dev/null)
+        fi
+        [[ $width =~ ^[0-9]+$ ]] || width=80
+        ((width > 2)) && ((width -= 2))
+        ((width > 120)) && width=120
+        ((width < 8)) && width=8
+    fi
+    if [[ ! $width =~ ^[0-9]{1,3}$ ]] || ((10#$width < 8 || 10#$width > 500)); then
+        printf 'gg: width must be an integer from 8 to 500\n' >&2
+        return 2
+    fi
+    width=$((10#$width))
+    if [[ -n $title ]] && ((${#title} + 4 > width)); then
+        printf 'gg: text is too long for width %d; increase --width\n' "$width" >&2
+        return 2
+    fi
+
+    local raw ansi number r g b bc tc br='' tr=''
+    local -a colors=()
+    for raw in "$color" "$text_color"; do
+        ansi=''
+        case $raw in
+            none|default) ;; black) ansi=$'\033[30m' ;; red) ansi=$'\033[31m' ;;
+            green) ansi=$'\033[32m' ;; yellow) ansi=$'\033[33m' ;;
+            blue) ansi=$'\033[34m' ;; magenta) ansi=$'\033[35m' ;;
+            cyan) ansi=$'\033[36m' ;; white) ansi=$'\033[37m' ;;
+            gray) ansi=$'\033[90m' ;; bright-red) ansi=$'\033[91m' ;;
+            bright-green) ansi=$'\033[92m' ;; bright-yellow) ansi=$'\033[93m' ;;
+            bright-blue) ansi=$'\033[94m' ;; bright-magenta) ansi=$'\033[95m' ;;
+            bright-cyan) ansi=$'\033[96m' ;; bright-white) ansi=$'\033[97m' ;;
+            \#??????)
+                if [[ $raw =~ ^#[[:xdigit:]]{6}$ ]]; then
+                    r=$((16#${raw:1:2})); g=$((16#${raw:3:2})); b=$((16#${raw:5:2}))
+                    printf -v ansi '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
+                else
+                    printf 'gg: invalid color: %s\n' "$raw" >&2; return 2
+                fi ;;
+            *)
+                if [[ $raw =~ ^[0-9]{1,3}$ ]]; then
+                    number=$((10#$raw))
+                    if ((number <= 255)); then
+                        printf -v ansi '\033[38;5;%dm' "$number"
+                    else
+                        printf 'gg: invalid color: %s\n' "$raw" >&2; return 2
+                    fi
+                else
+                    printf 'gg: invalid color: %s\n' "$raw" >&2; return 2
+                fi ;;
+        esac
+        colors+=("$ansi")
+    done
+    bc=${colors[0]}; tc=${colors[1]}
+    if ((no_color)) || { ((!force_color)) && { [[ ! -t 1 ]] || [[ -n ${NO_COLOR:-} ]]; }; }; then
+        bc=''; tc=''
+    fi
+    [[ -n $bc ]] && br=$'\033[0m'
+    [[ -n $tc ]] && tr=$'\033[0m'
+
+    local line=$glyph free left right spaces_left spaces_right
+    while ((${#line} < width)); do line+=$line; done
+    line=${line:0:width}
+    printf '\n'
+    if [[ -z $title ]]; then
+        printf '%s%s%s\n' "$bc" "$line" "$br"
+    elif [[ $layout == inline ]]; then
+        free=$((width - ${#title} - 2))
+        case $align in
+            left) left=1 ;; center) left=$((free / 2)) ;; right) left=$((free - 1)) ;;
+        esac
+        right=$((free - left))
+        printf '%s%s%s %s%s%s %s%s%s\n' \
+            "$bc" "${line:0:left}" "$br" "$tc" "$title" "$tr" "$bc" "${line:0:right}" "$br"
+    else
+        free=$((width - ${#title} - 4))
+        case $align in
+            left) left=0 ;; center) left=$((free / 2)) ;; right) left=$free ;;
+        esac
+        right=$((free - left))
+        printf -v spaces_left '%*s' "$((left + 2))" ''
+        printf -v spaces_right '%*s' "$((right + 2))" ''
+        printf '%s%s%s\n' "$bc" "$line" "$br"
+        printf '%s%s%s%s%s\n' "$spaces_left" "$tc" "$title" "$tr" "$spaces_right"
+        printf '%s%s%s\n' "$bc" "$line" "$br"
+    fi
+    printf '\n'
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    gg "$@"
+fi
