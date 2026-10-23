@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-gg() {
+_gg_generate() {
     local LC_ALL=C.UTF-8
     local style=${GG_STYLE:-double} pattern='' custom=0
     local color=${GG_COLOR:-magenta} text_color=${GG_TEXT_COLOR:-cyan}
@@ -183,5 +183,13 @@ HELP
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
-    gg "$@"
+    _gg_generate "$@"
+else
+    # Public functions are opt-in; the shared policy checks aliases first.
+    source "$(dirname -- "${BASH_SOURCE[0]}")/gg-names.sh" || return
+    if [[ ${1:-} != --function ]]; then
+        printf 'GG: source requires --function NAME\n' >&2
+        return 2
+    fi
+    _gg_enable_function "${2:-}" "${_gg_public_target:-}"
 fi

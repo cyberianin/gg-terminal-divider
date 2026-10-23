@@ -1,0 +1,19 @@
+name: Linux checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  bash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax, ShellCheck, golden output and installer safety
+        shell: bash
+        run: |
+          shellcheck() {
+            docker run --rm --network none --read-only --cap-drop ALL \
+              -v "$PWD:/mnt:ro" -w /mnt \
+              koalaman/shellcheck:v0.10.0 "$@"
+          }
+          export -f shellcheck
+          bash tests/ci.sh
