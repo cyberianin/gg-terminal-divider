@@ -118,4 +118,4 @@ gg "DONE"
 
 ## Участие и лицензия
 
-Приветствуются сообщения об ошибках и pull request. Лицензия — [LICENSE](LICENSE). Контакт: `211379639+cyberianin@users.noreply.github.com`.
+Приветствуются сообщения об ошибках и pull request. Лицензия — [LICENSE](LICENSE). Связаться с автором можно через [GitHub Issues](https://github.com/cyberianin/gg-terminal-divider/issues).

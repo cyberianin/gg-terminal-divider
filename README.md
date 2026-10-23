@@ -163,4 +163,4 @@ Run `bash tests/benchmark.sh 100` for three samples of 100 executable/function c
 
 ## Contributing and license
 
-Issues and pull requests are welcome. See [LICENSE](LICENSE). Contact: `211379639+cyberianin@users.noreply.github.com`.
+Issues and pull requests are welcome. See [LICENSE](LICENSE). Contact the maintainer through [GitHub Issues](https://github.com/cyberianin/gg-terminal-divider/issues).
