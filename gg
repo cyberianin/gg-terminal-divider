@@ -1,6 +1,31 @@
 #!/usr/bin/env bash
 
 _gg_generate() {
+    if [[ $* == *--box* || $* == *--table* ]]; then
+        local _gg_arg
+        for _gg_arg in "$@"; do
+            case $_gg_arg in
+                --) break ;;
+                --box|--table)
+                    local _gg_engine _gg_root _gg_binary _gg_dist
+                    _gg_root=$(dirname -- "${BASH_SOURCE[0]}")
+                    case $(uname -s) in
+                        MINGW*|MSYS*|CYGWIN*) _gg_binary=gg-format.exe; _gg_dist=windows-x64 ;;
+                        *) _gg_binary=gg-format; _gg_dist=linux-x64 ;;
+                    esac
+                    _gg_engine="$_gg_root/$_gg_binary"
+                    if [[ ! -x $_gg_engine ]]; then
+                        _gg_engine="$_gg_root/dist/$_gg_dist/$_gg_binary"
+                    fi
+                    if [[ ! -x $_gg_engine ]]; then
+                        printf 'gg: --box and --table require the GG Rust formatter binary\n' >&2
+                        return 2
+                    fi
+                    COLUMNS=${COLUMNS:-} "$_gg_engine" "$@"
+                    return $? ;;
+            esac
+        done
+    fi
     local LC_ALL=C.UTF-8
     local style=${GG_STYLE:-double} pattern='' custom=0
     local color=${GG_COLOR:-magenta} text_color=${GG_TEXT_COLOR:-cyan}
@@ -25,6 +50,16 @@ Usage: gg [options] [text]
       --no-color          Disable ANSI colors
       --force-color       Enable ANSI colors when redirected
   -h, --help              Show this help
+
+New modes (shared Rust binary, launched only when selected):
+      --box               Frame positional text or piped multiline text
+      --table             Frame TSV input from stdin
+      --title TEXT        Top border title for box/table
+      --header A,B        Table column names (or --header-first-row)
+      --header-first-row   Use first TSV row as column names
+      --overflow POLICY   wrap | truncate | error
+      --max-rows N        Table input row limit (default: 10000)
+      --max-bytes N       Input byte limit (default: 8388608)
 
 Colors: black, red, green, yellow, blue, magenta, cyan, white,
         gray, bright-red, bright-green, bright-yellow, bright-blue,

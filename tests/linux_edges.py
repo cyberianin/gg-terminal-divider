@@ -171,6 +171,8 @@ for point in ("before", "after"):
     run_case(f"SIGKILL {point} release commit preserves a complete pair", r'''
 mkdir "$2/src" "$2/mock"
 cp "$1/gg" "$1/gg-names.sh" "$1/gg-launcher.sh" "$1/install.sh" "$2/src/"
+mkdir -p "$2/src/dist/linux-x64"
+cp "$1/dist/linux-x64/gg-format" "$2/src/dist/linux-x64/gg-format"
 sed -i '2a _gg_test_release=A' "$2/src/gg"
 sed -i '/^_gg_enable_function() {/a\    [[ ${_gg_test_release:-} == A ]] || return 91' "$2/src/gg-names.sh"
 bash "$2/src/install.sh" --command vv --non-interactive >/dev/null
@@ -206,6 +208,8 @@ source "$GG_BIN_DIR/.gg-divider/gg" --function vv
 run_case("source pins its release across a concurrent update", r'''
 mkdir "$2/src"
 cp "$1/gg" "$1/gg-names.sh" "$1/gg-launcher.sh" "$1/install.sh" "$2/src/"
+mkdir -p "$2/src/dist/linux-x64"
+cp "$1/dist/linux-x64/gg-format" "$2/src/dist/linux-x64/gg-format"
 sed -i '2a _gg_test_release=A' "$2/src/gg"
 sed -i '/^_gg_enable_function() {/a\    [[ ${_gg_test_release:-} == A ]] || return 91' "$2/src/gg-names.sh"
 # Pause only readers, after loading the generator but before loading policy.
@@ -241,6 +245,8 @@ vv --no-color -w 32 STATUS >/dev/null
 run_case("selected release survives update and uninstall before first open", r'''
 mkdir "$2/src" "$2/mock"
 cp "$1/gg" "$1/gg-names.sh" "$1/gg-launcher.sh" "$1/install.sh" "$2/src/"
+mkdir -p "$2/src/dist/linux-x64"
+cp "$1/dist/linux-x64/gg-format" "$2/src/dist/linux-x64/gg-format"
 sed -i '/^_gg_generate() {/a\    printf "RELEASE-A\\n"' "$2/src/gg"
 bash "$2/src/install.sh" --command vv --non-interactive >/dev/null
 old=$(cat "$GG_BIN_DIR/.gg-divider/current")
@@ -268,6 +274,8 @@ grep -q RELEASE-A "$2/output"
 run_case("generator updates preserve installed v1 launcher", r'''
 mkdir "$2/src"
 cp "$1/gg" "$1/gg-names.sh" "$1/gg-launcher.sh" "$1/install.sh" "$2/src/"
+mkdir -p "$2/src/dist/linux-x64"
+cp "$1/dist/linux-x64/gg-format" "$2/src/dist/linux-x64/gg-format"
 bash "$2/src/install.sh" --command vv --non-interactive >/dev/null
 home=$GG_BIN_DIR/.gg-divider
 before=$(sha256sum "$home/gg")
@@ -279,6 +287,24 @@ bash "$2/src/install.sh" --command vv --non-interactive >/dev/null
 [[ $(vv --no-color -w 32 STATUS) == *NEW-GENERATOR* ]]
 source "$home/gg" --function vv
 [[ $(vv --no-color -w 32 STATUS) == *NEW-GENERATOR* ]]
+''')
+run_case("formatter binary stays pinned to selected release", r'''
+mkdir "$2/src"
+cp "$1/gg" "$1/gg-names.sh" "$1/gg-launcher.sh" "$1/install.sh" "$2/src/"
+mkdir -p "$2/src/dist/linux-x64"
+cp "$1/dist/linux-x64/gg-format" "$2/src/dist/linux-x64/gg-format"
+bash "$2/src/install.sh" --command vv --non-interactive >/dev/null
+home=$GG_BIN_DIR/.gg-divider
+old=$(cat "$home/current")
+cmp "$2/src/dist/linux-x64/gg-format" "$home/$old/gg-format"
+printf 'release B marker' >> "$2/src/dist/linux-x64/gg-format"
+bash "$2/src/install.sh" --command vv --non-interactive >/dev/null
+new=$(cat "$home/current")
+[[ $old != "$new" ]]
+cmp "$2/src/dist/linux-x64/gg-format" "$home/$new/gg-format"
+[[ $(sha256sum "$home/$old/gg-format" | cut -d' ' -f1) != $(sha256sum "$home/$new/gg-format" | cut -d' ' -f1) ]]
+bash "$home/$old/gg" --box --style ascii Hi | grep -q Hi
+bash "$home/$new/gg" --box --style ascii Hi | grep -q Hi
 ''')
 interactive("TTY accepts checked vv", False, "vv")
 interactive("TTY both occupied, manual xx", True, "xx")

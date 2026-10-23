@@ -6,6 +6,19 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) 
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in multiline text frames (`--box`) and bounded TSV tables (`--table`) for the 1.1.0 feature target.
+- Table headers, titles, overflow policies, and explicit input size limits.
+- One Rust formatter for Bash and native Windows PowerShell, with grapheme-aware display width, ANSI/control filtering, and bounded UTF-8 input.
+- Windows x64 MSVC and Linux x64 musl formatter builds; PowerShell installer, activation script, and cross-platform contracts.
+- Independent byte fixtures and tests for the new modes. The earlier Python implementation remains under `prototype/` as a comparison reference.
+
+### Changed
+
+- Bash versioned releases now pin the Rust binary with the generator and name policy in one atomic release switch. The v1 launcher and ordinary Bash divider path remain in place.
+- PowerShell uses a separate versioned install and stable launcher without modifying the user's profile.
+
 ## [1.0.0] - 2026-10-20
 
 ### Added

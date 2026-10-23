@@ -8,3 +8,4 @@ shellcheck -x gg gg-names.sh gg-launcher.sh install.sh tests/*.sh
 bash tests/test.sh
 bash tests/regression.sh
 python3 tests/linux_edges.py
+python3 tests/format_modes.py

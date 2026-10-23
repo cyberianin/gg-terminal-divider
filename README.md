@@ -1,8 +1,8 @@
 # GG — Gorgeous Gaps
 
-**Beautiful, customizable terminal separators for Bash.** Version **1.0.0**. [Русская версия](README.ru.md).
+**Beautiful terminal separators, frames, and TSV tables for Bash and PowerShell.** Version **1.1.0 target**. [Русская версия](README.ru.md).
 
-GG prints a divider or a titled section in a terminal with no mandatory third-party dependencies. The default installation uses one executable and a short symlink (a thin wrapper on MSYS systems that emulate symlinks). An explicitly enabled Bash function avoids starting a Bash process on each call.
+GG prints a divider or a titled section in a terminal. The ordinary Bash divider retains its shell-only fast path. The new `--box` and `--table` modes use the same Rust binary in Bash and PowerShell; packaged builds require neither Rust nor Python on the user's machine.
 
 ```text
 ════════════════════════════════════════
@@ -16,7 +16,37 @@ Terminal output can use named ANSI colors, 256 colors, or `#RRGGBB` truecolor. C
 
 ## Requirements
 
-Bash and a UTF-8 locale for Unicode styles. `tput` is optional. The default width uses `COLUMNS`, then `tput cols` on a terminal, then 80; it reserves two columns and caps automatic width at 120.
+Bash and a UTF-8 locale on Linux/Git Bash, or PowerShell 7+ on Windows. Windows PowerShell 5.1 is separately tested, including UTF-8 text pipeline input. `tput` is optional for Bash. Automatic width is capped at 120.
+
+The source tree includes `dist/linux-x64/gg-format` (static musl) and `dist/windows-x64/gg-format.exe` (MSVC). To rebuild, use `cargo build --release` for the host target, or `cargo build --release --target x86_64-unknown-linux-musl` with a compatible linker. Releases must package the binary in the appropriate `dist/` directory before installation. Windows ARM64, Linux ARM64, and macOS are **NOT VERIFIED**.
+
+## Frames and tables
+
+```bash
+gg --box "WARNING"
+printf 'CPU: 12%%\nRAM: 1.2 GiB\n' | gg --box --title "SYSTEM HEALTH"
+printf 'NAME\tSTATUS\nnginx\tRUNNING\n' | gg --table --header-first-row
+docker ps --format '{{.Names}}\t{{.Status}}' | gg --table --header NAME,STATUS
+```
+
+`--box` accepts positional text or multiline stdin. `--table` accepts TSV on stdin only. Empty cells, including trailing fields, are preserved. Use `--header A,B` or `--header-first-row`, never both. A header is optional, and without one the first row is data. Column counts must agree. LF and CRLF are accepted. Structured PowerShell objects are not converted into GG tables; send text.
+
+Both modes accept `--style single|double|heavy|ascii|dashed|dotted`, `--title`, `--width 8..500`, `--align left|center|right`, `--color`, `--text-color`, `--no-color`, `--force-color`, and `--overflow wrap|truncate|error`. Dashed and dotted use single-line corners and vertical sides. Box defaults to wrap; table defaults to truncate. Truncation uses `…`. A width too small for borders and one cell per column returns exit code 2 with no partial frame. `--max-bytes` defaults to 8 MiB; table `--max-rows` defaults to 10000 physical TSV rows, including a first-row header. Input is bounded before decoding and rendering. ANSI and terminal controls in input are removed; output color is generated only by GG. Unicode width follows grapheme clusters and the bundled Unicode width tables; individual terminal emoji and ambiguous-width policies can differ.
+
+The full table is buffered up to these limits to calculate column widths. Output is written after validation. A broken output pipe returns nonzero. Piped output is not automatically colored. `--force-color` enables color even when redirected; `--no-color` wins.
+
+## PowerShell installation and activation
+
+```powershell
+& .\install.ps1 -Command gg
+$env:PATH = "$HOME\.local\bin;$env:PATH"
+gg --box "WARNING"
+@('NAME`tSTATUS', 'nginx`tRUNNING') | gg --table --header-first-row
+```
+
+PowerShell resolves aliases and functions before external scripts. If direct `gg` does not resolve `gg.ps1` on your PATH, explicitly activate the chosen short name in the current session with `. "$HOME\.local\bin\.gg-divider-ps\activate.ps1" -Name gg`. Use `-Command vv` for the alternative. `-CheckNames` reports conflicts; the installer refuses to overwrite a command, alias, function, or foreign file. The installer never edits the PowerShell profile. Add the PATH or activation line to your own profile only if desired. `-Uninstall -Command gg` removes only its owned launcher. Each invocation pins one `version.*` directory containing `gg-ps.ps1` and `gg-format.exe`; updates atomically switch `current` and retain old releases for existing readers.
+
+PowerShell 5.1 sends text pipeline values through an explicit UTF-8 .NET stream. When starting `pwsh -File gg.ps1` from a non-PowerShell host with raw redirected Unicode bytes, that host's console input encoding may corrupt the data before the script sees it; use a PowerShell text pipeline with UTF-8 host input for this case. This direct raw-byte path is **NOT VERIFIED** across console encodings.
 
 ## Install from GitHub
 
@@ -79,7 +109,7 @@ For the alternative use `source "$HOME/.local/bin/.gg-divider/gg" --function vv`
 
 ## Install by copying code
 
-Download [gg](gg), [gg-names.sh](gg-names.sh), [gg-launcher.sh](gg-launcher.sh) and [install.sh](install.sh) into one directory, review them, then run the installer as above. This method needs no Git.
+Download [gg](gg), [gg-names.sh](gg-names.sh), [gg-launcher.sh](gg-launcher.sh), [install.sh](install.sh), and the matching Rust binary under `dist/linux-x64/` or `dist/windows-x64/`. Preserve the `dist/` layout, review the files, then run the installer as above. This method needs no Git.
 
 ## Usage
 
@@ -151,15 +181,17 @@ gg "DONE"
 
 ## Limits
 
-Alignment counts characters rather than terminal display cells. Emoji and wide CJK characters can misalign. Custom patterns should use narrow characters. Unicode styles need terminal and font support. Compatibility with macOS Bash and other terminal setups has not been verified.
+The legacy divider aligns by character count and can misalign emoji and wide CJK characters. Box/table use grapheme display width, with terminal-dependent ambiguity for some emoji. Custom divider patterns should use narrow characters. Unicode styles need terminal and font support. macOS remains **NOT VERIFIED**.
 
 ## Tests and timing
 
 Run `bash tests/test.sh` for installation safety and rendering checks, `bash tests/regression.sh` for 36 independent golden output comparisons, and `python3 tests/linux_edges.py` for Linux PTY, native links, permissions, concurrency, interrupted copies, SIGKILL before/after the release commit, reader consistency during updates, and legacy migration. Golden files were captured from the fixed original commit documented in [tests/golden/README.md](tests/golden/README.md); tests never regenerate them from current HEAD.
 
-`bash tests/ci.sh` runs syntax checks, ShellCheck and all tests; it requires Python 3 and ShellCheck for development only. The Linux GitHub Actions workflow runs this entrypoint with ShellCheck 0.10.0 in an isolated container. Version 0.11.0 currently crashes internally on the test script in this environment.
+`bash tests/ci.sh` runs syntax checks, ShellCheck, legacy tests, and new formatter contracts; it requires Python 3 and ShellCheck for development only. Windows contracts run through `python tests/powershell_contract.py`. The Linux GitHub Actions workflow runs the entrypoint with ShellCheck 0.10.0 in an isolated container. Version 0.11.0 previously crashed internally on the test script in this environment.
 
 Run `bash tests/benchmark.sh 100` for three samples of 100 executable/function calls. Set `GG_BENCH_ENTRY="$HOME/.local/bin/.gg-divider/gg"` to include the installed launcher. The benchmark explicitly launches Bash for the executable, redirects output and uses ASCII, width 80, and title `STATUS`. It reports wall, user and system seconds; timings depend on the host and do not predict interactive terminal latency. See [VALIDATION.md](VALIDATION.md) for measured results and verification limits.
+
+`bash tests/benchmark_compare.sh 200` compares the historical divider with the working tree on the same filesystem. `python3 tests/benchmark_modes.py` measures Rust, the saved Python prototype, and the shell adapter on box and 10/1,000/10,000-row TSV data. These benchmarks discard stdout; they do not measure terminal drawing.
 
 ## Contributing and license
 

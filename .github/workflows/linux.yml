@@ -7,6 +7,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build shared formatter for Linux x64
+        shell: bash
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          cargo test --locked
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo build --locked --release --target x86_64-unknown-linux-musl
+          mkdir -p dist/linux-x64
+          cp target/x86_64-unknown-linux-musl/release/gg-format dist/linux-x64/gg-format
+          chmod +x dist/linux-x64/gg-format
       - name: Syntax, ShellCheck, golden output and installer safety
         shell: bash
         run: |
@@ -17,3 +29,43 @@ jobs:
           }
           export -f shellcheck
           bash tests/ci.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gg-linux-x64-musl
+          path: |
+            gg
+            gg-names.sh
+            gg-launcher.sh
+            install.sh
+            dist/linux-x64/gg-format
+            README.md
+            README.ru.md
+            LICENSE
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build shared formatter for Windows x64
+        shell: pwsh
+        run: |
+          cargo test --locked
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo build --locked --release
+          New-Item -ItemType Directory -Force dist/windows-x64 | Out-Null
+          Copy-Item target/release/gg-format.exe dist/windows-x64/gg-format.exe
+      - name: PowerShell and shared-core contracts
+        shell: pwsh
+        run: |
+          python tests/powershell_contract.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gg-windows-x64-msvc
+          path: |
+            gg.ps1
+            gg-ps.ps1
+            gg-activate.ps1
+            install.ps1
+            dist/windows-x64/gg-format.exe
+            README.md
+            README.ru.md
+            LICENSE

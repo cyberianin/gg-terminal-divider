@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Source this installer to include the calling Bash's aliases and functions.
 _gg_install() (
-    local root bin name=gg explicit=0 interactive=1 check=0 remove=0 reason candidate
+    local root bin name=gg explicit=0 interactive=1 check=0 remove=0 reason candidate formatter dist
     root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || return
+    case $(uname -s) in
+        MINGW*|MSYS*|CYGWIN*) formatter=gg-format.exe; dist=windows-x64 ;;
+        *) formatter=gg-format; dist=linux-x64 ;;
+    esac
     source "$root/gg-names.sh" || return
     bin=${GG_BIN_DIR:-$HOME/.local/bin}
     while (($#)); do
@@ -57,7 +61,7 @@ _gg_install() (
     # A private directory is owned only when its marker and regular files match policy.
     if [[ -e $bin/.gg-divider || -L $bin/.gg-divider ]]; then
         [[ ! -L $bin/.gg-divider && -f $bin/.gg-divider/owner && ! -L $bin/.gg-divider/owner && $(cat "$bin/.gg-divider/owner") == gg-terminal-divider-v1 ]] || return 1
-        for candidate in gg gg-names.sh; do
+        for candidate in gg gg-names.sh gg-format gg-format.exe; do
             [[ ! -L $bin/.gg-divider/$candidate && ! -d $bin/.gg-divider/$candidate ]] || return 1
         done
     fi
@@ -83,13 +87,16 @@ _gg_install() (
     trap 'rm -rf -- "$stage"' EXIT
     cp -- "$root/gg" "$stage/gg" || return
     cp -- "$root/gg-names.sh" "$stage/gg-names.sh" || return
+    cp -- "$root/dist/$dist/$formatter" "$stage/$formatter" || return
     chmod +x -- "$stage/gg" || return
+    chmod +x -- "$stage/$formatter" || return
     if [[ -z $current ]] || ! cmp -s -- "$stage/gg" "$home/$current/gg" ||
-       ! cmp -s -- "$stage/gg-names.sh" "$home/$current/gg-names.sh"; then
+       ! cmp -s -- "$stage/gg-names.sh" "$home/$current/gg-names.sh" ||
+       ! cmp -s -- "$stage/$formatter" "$home/$current/$formatter"; then
         # Publish an immutable directory first. A crash here leaves an unused
         # release, while the old pointer remains fully usable.
         release=$(mktemp -d "$home/version.XXXXXX") || return
-        mv -- "$stage/gg" "$stage/gg-names.sh" "$release/" || return
+        mv -- "$stage/gg" "$stage/gg-names.sh" "$stage/$formatter" "$release/" || return
         printf '%s\n' "${release##*/}" > "$stage/current" || return
         # One same-filesystem rename commits BOTH versioned files together.
         mv -fT -- "$stage/current" "$home/current" || return

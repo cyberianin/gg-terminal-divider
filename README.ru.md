@@ -1,121 +1,64 @@
 # GG — Gorgeous Gaps
 
-> Установка и режим `source` изменились: актуальные безопасные инструкции находятся в [English README](README.md). Используйте `source ./install.sh` для установки, а для явного режима функции — `source "$HOME/.local/bin/.gg-divider/gg" --function gg`. Прежние инструкции установки ниже устарели.
+**Разделители, текстовые рамки и TSV-таблицы для Bash и PowerShell.** Целевая версия **1.1.0**. [English README](README.md).
 
-**Красивые настраиваемые разделители для терминала Bash.** Версия **1.0.0**. [English README](README.md).
+Обычный разделитель `gg` в Bash остаётся быстрым кодом оболочки. Новые режимы `--box` и `--table` используют один исполняемый Rust-движок в Bash и PowerShell. Готовые сборки не требуют установки Rust или Python. Python-прототип хранится только в `prototype/` для сравнения.
 
-GG выводит разделитель или секцию с заголовком. Это один Bash-файл без обязательных сторонних зависимостей. Его можно запускать как команду или подключить как функцию: при повторных вызовах в интерактивной SSH-сессии новый процесс Bash не создаётся.
+## Bash
 
-```text
-════════════════════════════════════════
-             SYSTEM HEALTH
-════════════════════════════════════════
-
-━━━━━━━  DOCKER STATUS  ━━━━━━━
-```
-
-Поддерживаются именованные ANSI-цвета, палитра 256 цветов и RGB `#RRGGBB`. При перенаправлении вывода цвета отключаются автоматически; `--force-color` включает их принудительно.
-
-## Требования
-
-Bash и локаль UTF-8 для Unicode-стилей. `tput` необязателен. Автоматическая ширина берётся из `COLUMNS`, затем из `tput cols` для терминала, иначе используется 80; резервируются две колонки, максимум автоматической ширины — 120.
-
-## Установка с GitHub
+Нужны Bash, UTF-8 и готовый `dist/linux-x64/gg-format`. Установщик сохраняет стабильный launcher v1 и размещает `gg`, `gg-names.sh` и `gg-format` в одном `version.*`, на который атомарно переключает `current`.
 
 ```bash
-git clone git@github.com:cyberianin/gg-terminal-divider.git
+git clone https://github.com/cyberianin/gg-terminal-divider.git
 cd gg-terminal-divider
-mkdir -p "$HOME/.local/bin"
-cp gg "$HOME/.local/bin/gg"
-chmod +x "$HOME/.local/bin/gg"
-```
-
-Если SSH-ключ не настроен, используйте `git clone https://github.com/cyberianin/gg-terminal-divider.git`. Для отдельной команды при необходимости добавьте `export PATH="$HOME/.local/bin:$PATH"` в `~/.bashrc`. Для работы как Bash-функции добавьте строку подключения один раз:
-
-```bash
-grep -Fqx 'source "$HOME/.local/bin/gg"' "$HOME/.bashrc" || printf '\nsource "$HOME/.local/bin/gg"\n' >> "$HOME/.bashrc"
-source "$HOME/.bashrc"
-gg --help
-```
-
-Если функция `gg` уже существует, подключение файла заменит её определение в текущей оболочке. Для обновления выполните `git pull` в клоне и снова скопируйте `gg`.
-
-## Установка копированием кода
-
-Откройте [gg](gg), скопируйте всё содержимое и сохраните его в `~/.local/bin/gg`, предварительно выполнив `mkdir -p "$HOME/.local/bin"`. Затем выполните `chmod +x "$HOME/.local/bin/gg"`. Добавьте PATH или строку `source` из инструкции выше. Git для этого способа не нужен. Перед запуском просмотрите код скрипта.
-
-## Использование
-
-```bash
-gg
-gg "DOCKER STATUS"
-gg --char '*' "SYSTEM"
-gg --char '=-' --color red "WARNING"
-gg --style heavy --color '#A855F7' "SERVER HEALTH"
-gg --layout inline --text-color yellow "DATABASE"
-gg --width 100 --align right "FINISHED"
-gg --no-color "PLAIN OUTPUT"
-gg --help
-```
-
-Несколько позиционных слов соединяются пробелами. `--text` заменяет позиционный текст; одновременно их указывать нельзя. Если текст начинается с `-`, поставьте перед ним `--`. Длинные параметры со значением также принимают форму `--option=value`.
-
-### Параметры и короткие алиасы
-
-| Длинный параметр | Короткий алиас | Значение или действие |
-| --- | --- | --- |
-| `--text` | `-t` | Заголовок |
-| `--style` | `-s` | `double`, `single`, `heavy`, `dashed`, `dotted`, `ascii` |
-| `--char` | `-c` | Повторяемый шаблон из 1–16 печатных узких символов; заменяет символ стиля |
-| `--color` | — | Цвет разделителя |
-| `--text-color` | — | Цвет заголовка |
-| `--width` | `-w` | Ширина 8–500 колонок |
-| `--align` | `-a` | `left`, `center`, `right` |
-| `--layout` | `-l` | `box` или `inline` |
-| `--no-color` | — | Отключить ANSI-цвета |
-| `--force-color` | — | Сохранить цвета при перенаправлении; `--no-color` имеет приоритет |
-| `--help` | `-h` | Показать справку |
-
-Других алиасов команды нет. Короткие флаги — алиасы длинных параметров из таблицы. `--` завершает разбор параметров.
-
-Цвета: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`, `bright-red`, `bright-green`, `bright-yellow`, `bright-blue`, `bright-magenta`, `bright-cyan`, `bright-white`, `#RRGGBB` или индекс `0`–`255`. `none` и `default` отключают один из цветов.
-
-### Настройки по умолчанию
-
-| Переменная | Значение по умолчанию | Соответствующий параметр |
-| --- | --- | --- |
-| `GG_STYLE` | `double` | `--style` |
-| `GG_COLOR` | `magenta` | `--color` |
-| `GG_TEXT_COLOR` | `cyan` | `--text-color` |
-| `GG_WIDTH` | Автоматически | `--width` |
-| `GG_ALIGN` | `center` | `--align` |
-| `GG_LAYOUT` | `box` | `--layout` |
-
-Задавайте переменные до подключения файла, например:
-
-```bash
-export GG_STYLE=heavy GG_COLOR='#A855F7' GG_TEXT_COLOR=white
-export GG_LAYOUT=inline GG_ALIGN=center GG_WIDTH=80
-source "$HOME/.local/bin/gg"
-```
-
-Параметры команды переопределяют переменные окружения. `NO_COLOR` отключает цвета, кроме случая с `--force-color`.
-
-## Пример сценария
-
-```bash
+source ./install.sh --check-names
+source ./install.sh --command gg
 gg "SYSTEM HEALTH"
-uptime
-free -h
-gg -l inline -s heavy "DOCKER CONTAINERS"
-docker ps
-gg "DONE"
+gg --color cyan "STATUS"
+gg --box "WARNING"
+printf 'NAME\tSTATUS\nnginx\tRUNNING\n' | gg --table --header-first-row
+docker ps --format '{{.Names}}\t{{.Status}}' | gg --table --header NAME,STATUS
 ```
 
-## Ограничения
+Установщик не меняет `.bashrc`. При необходимости добавьте `$HOME/.local/bin` в `PATH` самостоятельно. Для повторных вызовов без запуска Bash-процесса включите функцию: `source "$HOME/.local/bin/.gg-divider/gg" --function gg`. Обычный `gg` в этом режиме не запускает Rust. Для короткого имени `vv` используйте `--command vv` и `--function vv`. Конфликтующие алиасы, функции и файлы не перезаписываются. Удаление выбранного имени: `source ./install.sh --command gg --uninstall`.
 
-Выравнивание считает символы, а не занимаемые колонки терминала. Эмодзи и широкие CJK-символы могут нарушить геометрию. Для пользовательского шаблона нужны узкие символы. Unicode-стили требуют поддержки терминала и шрифта. Совместимость с Bash на macOS и другими конфигурациями терминалов отдельно не проверялась.
+## PowerShell на Windows
 
-## Участие и лицензия
+Основная цель — PowerShell 7+ на Windows 10/11. Windows PowerShell 5.1 проверена отдельно для текстового UTF-8 конвейера, пустых TSV-полей и кодов возврата. Сборка лежит в `dist/windows-x64/gg-format.exe`.
 
-Приветствуются сообщения об ошибках и pull request. Лицензия — [LICENSE](LICENSE). Связаться с автором можно через [GitHub Issues](https://github.com/cyberianin/gg-terminal-divider/issues).
+```powershell
+& .\install.ps1 -CheckNames
+& .\install.ps1 -Command gg
+$env:PATH = "$HOME\.local\bin;$env:PATH"
+gg
+gg "SYSTEM HEALTH"
+gg --color cyan "STATUS"
+gg --box "WARNING"
+@('NAME`tSTATUS', 'nginx`tRUNNING') | gg --table --header-first-row
+```
+
+PowerShell проверяет алиасы и функции раньше внешних программ. Если `gg.ps1` не находится непосредственно через `PATH`, подключите короткую команду в текущем сеансе: `. "$HOME\.local\bin\.gg-divider-ps\activate.ps1" -Name gg`. Разрешены также `vv`, `xx`, `bn`, `bb`, `cv`; установщик и активация проверяют конфликты. Профиль не меняется без вашего действия. Для удаления: `& .\install.ps1 -Command gg -Uninstall`. Стабильный `gg.ps1` выбирает одну версию `version.*`; PowerShell-адаптер и Rust-бинарник берутся из неё. Старые версии сохраняются для уже начатых вызовов.
+
+Текстовый конвейер передаётся в Rust как UTF-8. Объекты PowerShell не преобразуются автоматически в таблицу: сначала сформируйте TSV-текст. Вывод в файл или трубу отключает цвет, если не указан `--force-color`.
+
+Если запускать `pwsh -File gg.ps1` из другой программы и передавать сырые Unicode-байты в stdin, входная кодировка консоли этой программы может повредить текст до вызова скрипта. Для такого случая используйте текстовый конвейер PowerShell с UTF-8 входом хоста; прямая передача сырых байтов при разных кодировках консоли — **NOT VERIFIED**.
+
+## Рамки и таблицы
+
+```bash
+printf 'CPU: 12%%\nRAM: 1.2 GiB\n' | gg --box --title 'SYSTEM HEALTH'
+printf 'Service unavailable\nRetry later\n' | gg --box --style double --color red
+printf 'A\tB\nx\t\n' | gg --table --header-first-row
+```
+
+`--box` принимает позиционный текст **или** многострочный stdin. `--table` принимает TSV из stdin; первая строка по умолчанию считается данными. Заголовки задаются через `--header A,B` либо `--header-first-row`. Пустые ячейки между табуляциями и после последней табуляции сохраняются. Число колонок должно совпадать. Принимаются LF и CRLF.
+
+Общие параметры: `--style single|double|heavy|ascii|dashed|dotted`, `--title`, `--width 8..500`, `--align left|center|right`, `--color`, `--text-color`, `--no-color`, `--force-color` и `--overflow wrap|truncate|error`. Для dashed/dotted используются углы и вертикальные линии стиля single. Рамка по умолчанию переносит текст; таблица обрезает с `…`. При слишком малой ширине для границ и хотя бы одной позиции каждой колонке команда возвращает код 2 и ничего не рисует.
+
+`--max-bytes` по умолчанию ограничивает вход 8 МиБ. `--max-rows` ограничивает таблицу 10000 физическими строками TSV, включая строку заголовка из входа. Вход ограничивается до декодирования и расчёта ширин. Для расчёта ширин таблица буферизуется целиком в заданном лимите. Управляющие последовательности ANSI во входе удаляются; цвет вывода создаёт GG. Ширина Unicode считается по графемам и таблицам `unicode-width`; отображение некоторых emoji и символов неопределённой ширины зависит от терминала.
+
+## Платформы и сборка
+
+В репозитории находятся Windows x64 MSVC и Linux x64 musl сборки. Исходники Rust собираются через `cargo build --release`; для Linux x64 нужна цель `x86_64-unknown-linux-musl` и подходящий linker. Windows ARM64, Linux ARM64 и macOS — **NOT VERIFIED**. CI собирает обе целевые платформы, запускает Rust-тесты, старые Bash golden fixtures и новые PowerShell-контракты. Результаты локальной проверки и ограничения указаны в [VALIDATION.md](VALIDATION.md).
+
+GG не скачивает и не запускает двоичные файлы из сторонних источников автоматически. Выпуск 1.1.0, tag и GitHub Release пока не создавались.
