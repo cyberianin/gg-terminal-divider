@@ -41,6 +41,7 @@ jobs:
             README.md
             README.ru.md
             LICENSE
+            THIRD_PARTY_NOTICES.md
   powershell:
     runs-on: windows-latest
     steps:
@@ -69,3 +70,4 @@ jobs:
             README.md
             README.ru.md
             LICENSE
+            THIRD_PARTY_NOTICES.md

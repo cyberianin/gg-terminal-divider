@@ -62,3 +62,7 @@ printf 'A\tB\nx\t\n' | gg --table --header-first-row
 В репозитории находятся Windows x64 MSVC и Linux x64 musl сборки. Исходники Rust собираются через `cargo build --release`; для Linux x64 нужна цель `x86_64-unknown-linux-musl` и подходящий linker. Windows ARM64, Linux ARM64 и macOS — **NOT VERIFIED**. CI собирает обе целевые платформы, запускает Rust-тесты, старые Bash golden fixtures и новые PowerShell-контракты. Результаты локальной проверки и ограничения указаны в [VALIDATION.md](VALIDATION.md).
 
 GG не скачивает и не запускает двоичные файлы из сторонних источников автоматически. Выпуск 1.1.0, tag и GitHub Release пока не создавались.
+
+## Лицензия
+
+GG распространяется по стандартной [лицензии MIT](LICENSE), copyright (c) 2026 cyberianin. MIT разрешает использование, изменение, распространение и продажу копий при сохранении уведомлений об авторских правах и разрешении. Это включает работу в коммерческих организациях и production-инфраструктуре. Rust-зависимости сохраняют собственные лицензии; см. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

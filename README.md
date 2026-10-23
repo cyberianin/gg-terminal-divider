@@ -109,7 +109,7 @@ For the alternative use `source "$HOME/.local/bin/.gg-divider/gg" --function vv`
 
 ## Install by copying code
 
-Download [gg](gg), [gg-names.sh](gg-names.sh), [gg-launcher.sh](gg-launcher.sh), [install.sh](install.sh), and the matching Rust binary under `dist/linux-x64/` or `dist/windows-x64/`. Preserve the `dist/` layout, review the files, then run the installer as above. This method needs no Git.
+Download [gg](gg), [gg-names.sh](gg-names.sh), [gg-launcher.sh](gg-launcher.sh), [install.sh](install.sh), [LICENSE](LICENSE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the matching Rust binary under `dist/linux-x64/` or `dist/windows-x64/`. Preserve the `dist/` layout and license notices, review the files, then run the installer as above. This method needs no Git.
 
 ## Usage
 
@@ -193,6 +193,8 @@ Run `bash tests/benchmark.sh 100` for three samples of 100 executable/function c
 
 `bash tests/benchmark_compare.sh 200` compares the historical divider with the working tree on the same filesystem. `python3 tests/benchmark_modes.py` measures Rust, the saved Python prototype, and the shell adapter on box and 10/1,000/10,000-row TSV data. These benchmarks discard stdout; they do not measure terminal drawing.
 
-## Contributing and license
+## License
 
-Issues and pull requests are welcome. See [LICENSE](LICENSE). Contact the maintainer through [GitHub Issues](https://github.com/cyberianin/gg-terminal-divider/issues).
+GG is licensed under the standard [MIT License](LICENSE), copyright (c) 2026 cyberianin. The MIT License permits use, modification, distribution, and sale of copies, subject to retaining its copyright and permission notices. This includes use in commercial organizations and production infrastructure. Rust dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Issues and pull requests are welcome. Contact the maintainer through [GitHub Issues](https://github.com/cyberianin/gg-terminal-divider/issues).
