@@ -6,9 +6,29 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) 
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-27
+
+The 1.1.1 patch follows the 1.1.0 code on `main`; published artifacts are listed on GitHub Releases.
+
 ### Added
 
-- Opt-in multiline text frames (`--box`) and bounded TSV tables (`--table`) for the 1.1.0 feature target.
+- `gg version` and `gg --version` report the version of the formatter in the selected installed release.
+
+### Fixed
+
+- Windows PowerShell 5.1 reads the UTF-8 BOM-marked adapter correctly, restoring Unicode divider glyphs; installation copies the source bytes unchanged into the versioned runtime.
+- Interactive Windows stdout and stderr use `WriteConsoleW`; redirected output retains UTF-8 bytes. VT color is enabled only after Console API checks, with plain output when VT is unavailable.
+- PowerShell pipeline input reaches Rust as UTF-8, and a positional `--box` call sends EOF without an extra BOM or newline.
+- Reinstall and update accept GG's active alias only when it resolves to the verified owned launcher. Foreign aliases, functions, commands, and files still block installation.
+- Bash, PowerShell, and Rust now default both borders and text to the terminal foreground (`default`), keeping them visible on dark blue and light terminals without hard-coded ANSI colors. Explicit environment and CLI colors retain priority.
+
+## [1.1.0] - 2026-10-24
+
+Committed to `main` as the box/table feature version; no 1.1.0 GitHub Release was published.
+
+### Added
+
+- Opt-in multiline text frames (`--box`) and bounded TSV tables (`--table`).
 - Table headers, titles, overflow policies, and explicit input size limits.
 - One Rust formatter for Bash and native Windows PowerShell, with grapheme-aware display width, ANSI/control filtering, and bounded UTF-8 input.
 - Windows x64 MSVC and Linux x64 musl formatter builds; PowerShell installer, activation script, and cross-platform contracts.

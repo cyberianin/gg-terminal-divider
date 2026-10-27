@@ -14,6 +14,11 @@ bash "$test_root/install.sh" --command vv --non-interactive >/dev/null
 _gg_owned_link "$GG_BIN_DIR/vv" "$GG_BIN_DIR/.gg-divider/gg" || fail link
 expected=$(bash "$test_root/gg" --no-color --width 24 STATUS)
 [[ $(vv --no-color --width 24 STATUS) == "$expected" ]] || fail output
+installed_release=$(cat "$GG_BIN_DIR/.gg-divider/current")
+case $(uname -s) in MINGW*|MSYS*|CYGWIN*) formatter=gg-format.exe ;; *) formatter=gg-format ;; esac
+installed_version=$("$GG_BIN_DIR/.gg-divider/$installed_release/$formatter" --version)
+[[ $installed_version == 'gg 1.1.1' && $(vv version) == "$installed_version" &&
+   $(vv --version) == "$installed_version" ]] || fail version
 pass 'free name and shared output'
 bash "$test_root/install.sh" --command vv --non-interactive >/dev/null
 release_before=$(cat "$GG_BIN_DIR/.gg-divider/current")
@@ -94,4 +99,10 @@ for args in '--width 7' '--width 501' '--style bad' '--align bad' '--layout bad'
 done
 [[ $(bash "$test_root/gg" --width 8 --char ab --no-color) == $'\nabababab' ]] || fail pattern
 [[ $(bash "$test_root/gg" --width 24 --color red --force-color STATUS) == *$'\033[31m'* ]] || fail color
+default_output=$(env -u GG_COLOR -u GG_TEXT_COLOR bash "$test_root/gg" --width 24 --force-color STATUS)
+[[ $default_output != *$'\033['* ]] || fail default-foreground
+explicit_output=$(GG_COLOR=red GG_TEXT_COLOR=green bash "$test_root/gg" --width 24 --force-color STATUS)
+[[ $explicit_output == *$'\033[31m'* && $explicit_output == *$'\033[32m'* ]] || fail environment-colors
+override_output=$(GG_COLOR=red GG_TEXT_COLOR=green bash "$test_root/gg" --width 24 --force-color --color blue --text-color yellow STATUS)
+[[ $override_output == *$'\033[34m'* && $override_output == *$'\033[33m'* ]] || fail explicit-colors
 pass 'rendering, colors, patterns and invalid options'

@@ -1,5 +1,5 @@
 <#
-PowerShell 7+ installer. Run with: & ./install.ps1 -Command gg
+PowerShell 5.1+ installer. Run with: & ./install.ps1 -Command gg
 No profile is modified. Installed scripts pin one release before opening files.
 #>
 param(
@@ -18,6 +18,12 @@ $marker = Join-Path $homeDir 'owner'
 $launcherHash = Join-Path $homeDir 'launcher.sha256'
 $ownerText = 'gg-terminal-divider-powershell-v1'
 $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
+function Get-GGHash([string]$path) {
+    $stream = [IO.File]::OpenRead($path)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+    finally { $sha.Dispose(); $stream.Dispose() }
+}
 
 function Test-OwnCommand([string]$path) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
@@ -25,20 +31,25 @@ function Test-OwnCommand([string]$path) {
     if ([IO.File]::ReadAllText($marker).Trim() -cne $ownerText) { return $false }
     if ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
     if (Test-Path -LiteralPath $launcherHash -PathType Leaf) {
-        return (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ceq
+        return (Get-GGHash $path) -ceq
             [IO.File]::ReadAllText($launcherHash).Trim()
     }
     return [IO.File]::ReadAllText($path) -ceq [IO.File]::ReadAllText((Join-Path $source 'gg.ps1'))
 }
 function Get-Conflict([string]$name) {
     $public = Join-Path $bin "$name.ps1"
-    if ((Test-Path -LiteralPath $public) -and -not (Test-OwnCommand $public)) {
+    $owned = Test-OwnCommand $public
+    if ((Test-Path -LiteralPath $public) -and -not $owned) {
         return "foreign destination: $public"
     }
     foreach ($entry in @(Get-Command -Name $name -All -ErrorAction SilentlyContinue)) {
         if ($entry.CommandType -eq 'ExternalScript' -and
             [IO.Path]::GetFullPath($entry.Source) -ceq [IO.Path]::GetFullPath($public) -and
-            (Test-OwnCommand $public)) { continue }
+            $owned) { continue }
+        if ($entry.CommandType -eq 'Alias' -and $owned -and
+            [IO.Path]::GetFullPath($entry.Definition) -ieq [IO.Path]::GetFullPath($public)) {
+            continue
+        }
         return "$($entry.CommandType): $($entry.Source)"
     }
     return ''
@@ -98,8 +109,8 @@ if ($same) {
             Join-Path $source 'dist/windows-x64/gg-format.exe'
         } else { Join-Path $source $file }
         if (-not (Test-Path -LiteralPath $oldFile -PathType Leaf) -or
-            (Get-FileHash -LiteralPath $oldFile -Algorithm SHA256).Hash -cne
-            (Get-FileHash -LiteralPath $newFile -Algorithm SHA256).Hash) {
+            (Get-GGHash $oldFile) -cne
+            (Get-GGHash $newFile)) {
             $same = $false
             break
         }
@@ -131,7 +142,7 @@ if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
     [IO.File]::Copy((Join-Path $source 'gg.ps1'), $target)
 }
 if (-not (Test-Path -LiteralPath $launcherHash -PathType Leaf)) {
-    [IO.File]::WriteAllText($launcherHash, ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash + "`n"), $utf8)
+    [IO.File]::WriteAllText($launcherHash, ((Get-GGHash $target) + "`n"), $utf8)
 }
 $activate = Join-Path $homeDir 'activate.ps1'
 if (-not (Test-Path -LiteralPath $activate -PathType Leaf)) {

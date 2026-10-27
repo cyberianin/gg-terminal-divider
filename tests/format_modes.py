@@ -102,6 +102,18 @@ class FormatModes(unittest.TestCase):
         self.assertIn(b"danger", result.stdout)
         result = invoke("--box", "--force-color", "--color", "red", "hi")
         self.assertIn(b"\x1b[31m", result.stdout)
+        clean = {"GG_COLOR": "", "GG_TEXT_COLOR": ""}
+        result = invoke("--box", "--force-color", "hi", env=clean)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn(b"\x1b[", result.stdout)
+        result = invoke("--table", "--force-color", "--header", "A", data=b"x\n", env=clean)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn(b"\x1b[", result.stdout)
+        result = invoke("--box", "--force-color", "--color", "blue", "--text-color", "yellow",
+                        "hi", env={"GG_COLOR": "red", "GG_TEXT_COLOR": "green"})
+        self.assertIn(b"\x1b[34m", result.stdout)
+        self.assertIn(b"\x1b[33m", result.stdout)
+        self.assertNotIn(b"\x1b[31m", result.stdout)
         result = invoke("--box", "--force-color", "--no-color", "hi")
         self.assertNotIn(b"\x1b", result.stdout)
 

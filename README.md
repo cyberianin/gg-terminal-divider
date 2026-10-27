@@ -1,8 +1,10 @@
 # GG — Gorgeous Gaps
 
-**Beautiful terminal separators, frames, and TSV tables for Bash and PowerShell.** Version **1.1.0 target**. [Русская версия](README.ru.md).
+**Beautiful terminal separators, frames, and TSV tables for Bash and PowerShell.** Version **1.1.1**. [Русская версия](README.ru.md).
 
-GG prints a divider or a titled section in a terminal. The ordinary Bash divider retains its shell-only fast path. The new `--box` and `--table` modes use the same Rust binary in Bash and PowerShell; packaged builds require neither Rust nor Python on the user's machine.
+The 1.1.0 feature work was committed on `main` but was not published as a GitHub Release. See [GitHub Releases](https://github.com/cyberianin/gg-terminal-divider/releases) for published versions.
+
+GG prints a divider or a titled section in a terminal. Ordinary dividers retain their Bash or PowerShell fast path. The `--box` and `--table` modes use the same Rust binary in Bash and PowerShell; packaged builds require neither Rust nor Python on the user's machine.
 
 ```text
 ════════════════════════════════════════
@@ -16,9 +18,9 @@ Terminal output can use named ANSI colors, 256 colors, or `#RRGGBB` truecolor. C
 
 ## Requirements
 
-Bash and a UTF-8 locale on Linux/Git Bash, or PowerShell 7+ on Windows. Windows PowerShell 5.1 is separately tested, including UTF-8 text pipeline input. `tput` is optional for Bash. Automatic width is capped at 120.
+Bash and a UTF-8 locale on Linux/Git Bash, or Windows PowerShell 5.1 or PowerShell 7+ on Windows. `tput` is optional for Bash. Automatic width is capped at 120.
 
-The source tree includes `dist/linux-x64/gg-format` (static musl) and `dist/windows-x64/gg-format.exe` (MSVC). To rebuild, use `cargo build --release` for the host target, or `cargo build --release --target x86_64-unknown-linux-musl` with a compatible linker. Releases must package the binary in the appropriate `dist/` directory before installation. Windows ARM64, Linux ARM64, and macOS are **NOT VERIFIED**.
+The source tree includes `dist/linux-x64/gg-format` (static musl) and `dist/windows-x64/gg-format.exe` (MSVC), both rebuilt for 1.1.1. To rebuild, use `cargo build --release --locked` for the host target, or `cargo build --release --locked --target x86_64-unknown-linux-musl` with a compatible linker. The installer copies the matching binary from `dist/` into an immutable versioned runtime. Windows ARM64, Linux ARM64, and macOS are **NOT VERIFIED**.
 
 ## Frames and tables
 
@@ -37,18 +39,26 @@ The full table is buffered up to these limits to calculate column widths. Output
 
 ## PowerShell installation and activation
 
+For the Windows x64 release archive, extract `gg-1.1.1-windows-x64.zip`, enter its `gg-1.1.1-windows-x64` directory, then run:
+
 ```powershell
 & .\install.ps1 -Command gg
-$env:PATH = "$HOME\.local\bin;$env:PATH"
+. "$HOME\.local\bin\.gg-divider-ps\activate.ps1" -Name gg
+gg "SYSTEM HEALTH"
 gg --box "WARNING"
 @('NAME`tSTATUS', 'nginx`tRUNNING') | gg --table --header-first-row
 ```
 
-PowerShell resolves aliases and functions before external scripts. If direct `gg` does not resolve `gg.ps1` on your PATH, explicitly activate the chosen short name in the current session with `. "$HOME\.local\bin\.gg-divider-ps\activate.ps1" -Name gg`. Use `-Command vv` for the alternative. `-CheckNames` reports conflicts; the installer refuses to overwrite a command, alias, function, or foreign file. The installer never edits the PowerShell profile. Add the PATH or activation line to your own profile only if desired. `-Uninstall -Command gg` removes only its owned launcher. Each invocation pins one `version.*` directory containing `gg-ps.ps1` and `gg-format.exe`; updates atomically switch `current` and retain old releases for existing readers.
+PowerShell resolves aliases and functions before external scripts. If direct `gg` does not resolve `gg.ps1` on your PATH, activate it in the current session with `. "$HOME\.local\bin\.gg-divider-ps\activate.ps1" -Name gg`. Use `-Command vv` for the alternative. `-CheckNames` reports conflicts. Reinstalling or updating while GG's own alias is active is allowed only when the alias points to GG's owned launcher; foreign aliases, functions, commands, and files still block installation. The installer never edits the PowerShell profile. Add the PATH or activation line to your own profile only if desired. `& .\install.ps1 -Command gg -Uninstall` removes only its owned launcher. Each invocation pins one `version.*` directory containing `gg-ps.ps1` and `gg-format.exe`; updates atomically switch `current` and retain old releases for existing readers.
+
+Windows Console Host uses VT colors when `GetConsoleMode` and `SetConsoleMode` confirm support. Interactive Unicode goes through `WriteConsoleW`; redirected stdout and stderr retain UTF-8 bytes. `NO_COLOR` disables automatic colors, `--force-color` colors redirected output, and `--no-color` takes precedence.
+Borders and text default to `default` in Bash, PowerShell, and Rust: they inherit the terminal foreground, including on dark blue and light backgrounds. Set `GG_COLOR` or `GG_TEXT_COLOR`, or pass `--color` or `--text-color`, to choose explicit colors. `--force-color` permits requested ANSI colors in redirected output but does not add ANSI codes when both colors are `default`.
 
 PowerShell 5.1 sends text pipeline values through an explicit UTF-8 .NET stream. When starting `pwsh -File gg.ps1` from a non-PowerShell host with raw redirected Unicode bytes, that host's console input encoding may corrupt the data before the script sees it; use a PowerShell text pipeline with UTF-8 host input for this case. This direct raw-byte path is **NOT VERIFIED** across console encodings.
 
 ## Install from GitHub
+
+For the Linux x64 release archive, extract `gg-1.1.1-linux-x64.tar.gz`, enter its `gg-1.1.1-linux-x64` directory, then run `source ./install.sh --command gg`. The archive keeps the required `dist/linux-x64/` layout. The Windows archive keeps `dist/windows-x64/` for `install.ps1`. Both archives include the license notices.
 
 ```bash
 git clone git@github.com:cyberianin/gg-terminal-divider.git
@@ -103,6 +113,7 @@ Enable this mode explicitly in each desired shell, or add this line to your own 
 ```bash
 source "$HOME/.local/bin/.gg-divider/gg" --function gg
 gg --help
+gg version
 ```
 
 For the alternative use `source "$HOME/.local/bin/.gg-divider/gg" --function vv`, then `vv "STATUS"`. Public functions are created only after checking for conflicts, including aliases even when alias expansion is enabled. A foreign alias or function causes a nonzero return and is preserved. GG's own function can be reloaded. Sourcing without `--function NAME` fails; it never implicitly installs `gg`. Remove a function from the current session with `unset -f gg` (or the selected name). The executable and function call the same internal generator.
@@ -142,18 +153,19 @@ Positional words are joined with spaces. `--text` is an alternative to positiona
 | `--no-color` | — | Disable ANSI colors |
 | `--force-color` | — | Keep colors when stdout is redirected; `--no-color` still wins |
 | `--help` | `-h` | Show help |
+| `--version` | — | Show the installed GG version; `gg version` is equivalent |
 
-Short flags are aliases for the long options shown here. The installed command name does not change these options. `--` ends option parsing.
+Short flags are aliases for the long options shown here. The installed command name does not change these options. `--` ends option parsing. The version command reads the formatter from the selected installed release; `gg -- version` prints the literal word as a divider title.
 
-Colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`, `bright-red`, `bright-green`, `bright-yellow`, `bright-blue`, `bright-magenta`, `bright-cyan`, `bright-white`, `#RRGGBB`, or an index `0`–`255`. `none` and `default` disable one color.
+Colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`, `bright-red`, `bright-green`, `bright-yellow`, `bright-blue`, `bright-magenta`, `bright-cyan`, `bright-white`, `#RRGGBB`, or an index `0`–`255`. `none` and `default` inherit the terminal foreground without an ANSI color code.
 
 ### Defaults
 
 | Variable | Default | Matching option |
 | --- | --- | --- |
 | `GG_STYLE` | `double` | `--style` |
-| `GG_COLOR` | `magenta` | `--color` |
-| `GG_TEXT_COLOR` | `cyan` | `--text-color` |
+| `GG_COLOR` | `default` | `--color` |
+| `GG_TEXT_COLOR` | `default` | `--text-color` |
 | `GG_WIDTH` | Automatic | `--width` |
 | `GG_ALIGN` | `center` | `--align` |
 | `GG_LAYOUT` | `box` | `--layout` |

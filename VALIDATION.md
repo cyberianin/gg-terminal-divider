@@ -1,5 +1,29 @@
 # Validation
 
+## GG 1.1.1 patch candidate (2026-10-27)
+
+These local checks were recorded before the 1.1.1 publication workflow. At that time v1.0.0 was the latest published GitHub Release; 1.1.0 formatter features were committed on `main` without a separate GitHub Release. The checks below cover the 1.1.1 fixes; release status is tracked on GitHub Releases.
+
+| Check | Result |
+| --- | --- |
+| Windows PowerShell 5.1 and PowerShell 7, `python -m unittest tests.powershell_contract` | Exit 0; 14 tests passed in 250.571 s. Includes byte comparisons against all 36 divider golden fixtures on both shells, Unicode and ANSI bytes, exact stdin EOF, redirected output, Console Host screen attributes and VT restoration, owned-alias update, foreign-alias rejection, and installed formatter version. |
+| WSL Ubuntu, `bash tests/test.sh && bash tests/regression.sh && python3 tests/linux_edges.py && python3 tests/format_modes.py` | Exit 0; 16 Bash groups, 36 golden comparisons, 20/20 Linux edge checks, and 9/9 formatter tests passed. |
+| `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings` | Exit 0; 5 Rust unit tests passed; formatter and Clippy clean. |
+| Windows x64 MSVC and Linux x64 musl release builds | Exit 0 for `cargo build --release --locked` and `cargo build --release --locked --target x86_64-unknown-linux-musl` using the installed `rust-lld` linker. The rebuilt Linux executable also ran successfully in WSL. |
+
+The built-in `GG_COLOR` and `GG_TEXT_COLOR` are now `default` in Bash, PowerShell, and Rust. They emit no ANSI color code, so both borders and text inherit the terminal foreground on dark and light backgrounds. Byte-level checks confirm that redirected output stays free of ANSI at the defaults even with `--force-color`; explicit environment and CLI colors still emit their requested codes when forced, and `--no-color` suppresses them. In a real Windows Console Host set to a dark blue background and gray foreground, the divider and Rust frame both retained foreground attribute 7. This checks actual screen attributes, not only redirected stdout.
+
+SHA-256 for the final release artifacts and copies installed into test directories:
+
+| Platform | Build output = `dist/` = installed runtime copy |
+| --- | --- |
+| Windows x64 MSVC | `5aa9736bf2fea139b3ebd16fc9026a4e3c56aba546e9ca3c3303088ebc77a323` |
+| Linux x64 musl | `56adef138dc39505a5ce05684fc2a6264aa308e62786fb21aabba5613e89654f` |
+
+The version output is read from the formatter in the selected release rather than a hard-coded shell value. The Windows x64 ZIP and Linux x64 tarball were extracted and installed into isolated directories; both installed commands reported `gg 1.1.1`, and the formatter bytes matched their packaged binaries. The archive SHA-256 values are published in the attached `SHA256SUMS.txt`.
+
+The full PowerShell suite takes about four minutes because it launches separate shells for the 72 golden comparisons. It was rerun after a test injection point needed adjustment for the new `version` branch; all 14 tests passed. The `tests/ci.sh` aggregate was not run in this WSL session because ShellCheck was unavailable; its Bash, golden, Linux edge, and formatter components passed separately. Hosted CI is a publication gate. Windows ARM64, Linux ARM64, macOS, older Console Hosts without VT support, and parallel VT-mode races remain **NOT VERIFIED**. The old benchmarks below are historical 1.1.0 measurements and were not rerun for this patch.
+
 ## GG 1.1.0 Rust formatter validation (2026-10-24)
 
 The shared `gg-format` library and CLI are built with Rust 1.98.0, `unicode-width`, and `unicode-segmentation`. The distributed binaries in this working tree are Windows x64 MSVC (200,192 bytes) and Linux x64 musl (466,432 bytes). The uncompressed platform payloads, including shell scripts and the binary, are 219,916 and 485,495 bytes respectively. The Python prototype (15,022 bytes of source) is retained only for comparison.

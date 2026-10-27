@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 
 _gg_generate() {
+    if (($# == 1)) && [[ $1 == version || $1 == --version ]]; then
+        local _gg_root _gg_binary _gg_dist _gg_engine
+        _gg_root=$(dirname -- "${BASH_SOURCE[0]}")
+        case $(uname -s) in
+            MINGW*|MSYS*|CYGWIN*) _gg_binary=gg-format.exe; _gg_dist=windows-x64 ;;
+            *) _gg_binary=gg-format; _gg_dist=linux-x64 ;;
+        esac
+        _gg_engine="$_gg_root/$_gg_binary"
+        if [[ ! -x $_gg_engine ]]; then
+            _gg_engine="$_gg_root/dist/$_gg_dist/$_gg_binary"
+        fi
+        if [[ ! -x $_gg_engine ]]; then
+            printf 'gg: missing GG Rust formatter binary\n' >&2
+            return 2
+        fi
+        "$_gg_engine" --version
+        return $?
+    fi
     if [[ $* == *--box* || $* == *--table* ]]; then
         local _gg_arg
         for _gg_arg in "$@"; do
@@ -28,7 +46,7 @@ _gg_generate() {
     fi
     local LC_ALL=C.UTF-8
     local style=${GG_STYLE:-double} pattern='' custom=0
-    local color=${GG_COLOR:-magenta} text_color=${GG_TEXT_COLOR:-cyan}
+    local color=${GG_COLOR:-default} text_color=${GG_TEXT_COLOR:-default}
     local layout=${GG_LAYOUT:-box} align=${GG_ALIGN:-center} width=${GG_WIDTH:-}
     local title='' explicit=0 no_color=0 force_color=0 option value glyph
     local -a words=()
@@ -42,14 +60,15 @@ Usage: gg [options] [text]
   -t, --text TEXT         Title (alternative to positional text)
   -s, --style STYLE       double | single | heavy | dashed | dotted | ascii
   -c, --char PATTERN      Custom pattern (1..16 narrow characters)
-      --color COLOR       Separator color (default: magenta)
-      --text-color COLOR  Title color (default: cyan)
+      --color COLOR       Separator color (default: terminal foreground)
+      --text-color COLOR  Title color (default: terminal foreground)
   -w, --width N           Width (8..500; automatic width capped at 120)
   -a, --align ALIGN       left | center | right
   -l, --layout LAYOUT     box | inline
       --no-color          Disable ANSI colors
       --force-color       Enable ANSI colors when redirected
   -h, --help              Show this help
+      --version           Show GG version (also: gg version)
 
 New modes (shared Rust binary, launched only when selected):
       --box               Frame positional text or piped multiline text
@@ -64,7 +83,7 @@ New modes (shared Rust binary, launched only when selected):
 Colors: black, red, green, yellow, blue, magenta, cyan, white,
         gray, bright-red, bright-green, bright-yellow, bright-blue,
         bright-magenta, bright-cyan, bright-white, #RRGGBB, 0..255.
-        Use none or default to disable an individual color.
+        Use none or default to inherit the terminal foreground.
 
 Defaults: GG_STYLE, GG_COLOR, GG_TEXT_COLOR, GG_WIDTH,
           GG_ALIGN, GG_LAYOUT.
